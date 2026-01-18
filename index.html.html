@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Irregular Verbs - Premier League</title>
+    <style>
+        /* --- GENERAL STYLES & LAYOUT --- */
+        @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #121212;
+            color: white;
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-wrapper {
+            position: relative;
+            width: 900px;
+            height: 650px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.8);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 4px solid #fff;
+            /* Fons tipus gespa fosca */
+            background: linear-gradient(to bottom, #2d6a36 0%, #1a4a23 100%);
+        }
+
+        /* --- DISEÑO DEL CAMPO DE FÚTBOL (CSS PITCH) --- */
+        #pitch-lines {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.4;
+        }
+        
+        /* Línea de medio campo (arriba) */
+        .pitch-midfield-line {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: white;
+        }
+        
+        /* Círculo central (arriba) */
+        .pitch-center-circle {
+            position: absolute;
+            top: -100px; left: 50%;
+            transform: translateX(-50%);
+            width: 200px; height: 200px;
+            border: 3px solid white;
+            border-radius: 50%;
+        }
+
+        /* Área Grande (Penalty Area) */
+        .pitch-penalty-area {
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 550px; height: 180px;
+            border: 3px solid white;
+            border-bottom: none;
+        }
+
+        /* Área Pequeña (Goal Area) */
+        .pitch-goal-area {
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 250px; height: 70px;
+            border: 3px solid white;
+            border-bottom: none;
+        }
+
+        /* Punto de Penalti */
+        .pitch-penalty-spot {
+            position: absolute;
+            bottom: 130px; left: 50%;
+            transform: translateX(-50%);
+            width: 6px; height: 6px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        /* Semicírculo del área (The D) */
+        .pitch-arc {
+            position: absolute;
+            bottom: 180px; left: 50%;
+            transform: translateX(-50%);
+            width: 150px; height: 60px;
+            border: 3px solid white;
+            border-bottom: 0;
+            border-radius: 100px 100px 0 0;
+        }
+        
+        /* Corners */
+        .pitch-corner-tl { position: absolute; top: 0; left: 0; width: 30px; height: 30px; border-right: 3px solid white; border-bottom: 3px solid white; border-bottom-right-radius: 100%; }
+        .pitch-corner-tr { position: absolute; top: 0; right: 0; width: 30px; height: 30px; border-left: 3px solid white; border-bottom: 3px solid white; border-bottom-left-radius: 100%; }
+
+        canvas {
+            display: block;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- UI OVERLAYS --- */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(13, 43, 22, 0.95); /* Verd fosc semi-transparent */
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        h1 {
+            font-family: 'Teko', sans-serif;
+            color: #f1c40f;
+            text-shadow: 2px 2px 0px #000;
+            font-size: 60px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+
+        h2 { 
+            color: #fff; 
+            margin-bottom: 20px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            font-family: 'Teko', sans-serif;
+            font-size: 30px;
+        }
+
+        /* --- INPUTS & BUTTONS --- */
+        input[type="text"] {
+            padding: 15px;
+            font-size: 22px;
+            border-radius: 5px;
+            border: 3px solid #fff;
+            background: #f8f9fa;
+            width: 300px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-family: 'Teko', sans-serif;
+            font-weight: 600;
+        }
+
+        button {
+            padding: 10px 40px;
+            font-family: 'Teko', sans-serif;
+            font-size: 24px;
+            color: #0d2b16;
+            background: #f1c40f; /* Yellow card color style */
+            border: 2px solid #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 4px #c29d0b;
+            transition: transform 0.1s;
+            margin: 10px;
+            text-transform: uppercase;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px #c29d0b;
+        }
+        
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            box-shadow: none;
+            color: #bdc3c7;
+        }
+
+        button.secondary { background: #fff; color: #0d2b16; box-shadow: 0 4px #ccc; }
+
+        /* --- LEVEL SELECTOR --- */
+        .grid-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .level-btn {
+            padding: 10px;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+            background: #1e5631;
+            border: 2px solid #fff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .level-btn:hover { background: #27ae60; }
+        .level-btn.selected {
+            background: #f1c40f;
+            color: #0d2b16;
+            border-color: #fff;
+            box-shadow: 0 0 10px #f1c40f;
+            transform: scale(1.05);
+        }
+
+        /* --- RANKING TABLE --- */
+        .ranking-table {
+            width: 70%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-family: 'Roboto', sans-serif;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        .ranking-table th, .ranking-table td {
+            padding: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+        .ranking-table th { color: #f1c40f; font-family: 'Teko', sans-serif; font-size: 20px; }
+        .ranking-table tr:nth-child(1) td { color: #f1c40f; font-weight: bold; }
+
+        /* --- IN-GAME INPUT --- */
+        #game-input-container {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+        #game-input {
+            pointer-events: auto;
+            width: 450px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 4px solid #0d2b16;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            font-size: 24px;
+            text-transform: lowercase;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        /* --- LEGEND (BOTTOM LEFT) --- */
+        #legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #121212;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: left;
+            pointer-events: none;
+            border: 2px solid #000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            z-index: 5;
+            font-family: 'Teko', sans-serif;
+            text-transform: uppercase;
+        }
+        .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; border: 1px solid #000; }
+        .legend-item { margin-bottom: 6px; display: flex; align-items: center; font-weight: bold; }
+        
+        /* --- MISSED SCREEN STYLES --- */
+        #missed-answer {
+            background: rgba(0,0,0,0.3);
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: 1px solid #f1c40f;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <!-- Pitch Lines Decoration (REGLAMENTARIO) -->
+    <div id="pitch-lines">
+        <div class="pitch-midfield-line"></div>
+        <div class="pitch-center-circle"></div>
+        <div class="pitch-arc"></div>
+        <div class="pitch-penalty-area"></div>
+        <div class="pitch-goal-area"></div>
+        <div class="pitch-penalty-spot"></div>
+        <div class="pitch-corner-tl"></div>
+        <div class="pitch-corner-tr"></div>
+    </div>
+
+    <canvas id="gameCanvas" width="900" height="650"></canvas>
+    
+    <div id="legend" class="hidden">
+        <div class="legend-item"><span class="dot" style="background:#e74c3c"></span> Red: Write PAST</div>
+        <div class="legend-item"><span class="dot" style="background:#3498db"></span> Blue: Write PRESENT</div>
+        <div class="legend-item" style="margin-bottom: 0;"><span class="dot" style="background:#2ecc71"></span> Green: Write MEANING</div>
+    </div>
+
+    <!-- SCREEN 1: LOGIN -->
+    <div id="screen-login" class="screen">
+        <h1>IRREGULAR VERBS<br>PREMIER LEAGUE</h1>
+        <p style="margin-bottom: 20px; font-size: 18px;">Enter player name:</p>
+        <input type="text" id="player-name" placeholder="Your Name" maxlength="12" autofocus>
+        <button onclick="goToMenu()">ENTER STADIUM</button>
+    </div>
+
+    <!-- SCREEN 2: MENU & SELECTOR -->
+    <div id="screen-menu" class="screen hidden">
+        <h2>Select Matches (Groups)</h2>
+        <div class="grid-selector" id="level-grid"></div>
+        <div style="display:flex;">
+            <button onclick="startGame()">KICK OFF!</button>
+            <button class="secondary" onclick="showRanking()">LEAGUE TABLE</button>
+        </div>
+        <p id="menu-error" style="color: #e74c3c; font-size: 16px; height: 20px; font-weight:bold; margin-top:10px;"></p>
+    </div>
+
+    <!-- SCREEN 3: RANKING -->
+    <div id="screen-ranking" class="screen hidden">
+        <h2>Hall of Fame</h2>
+        <table class="ranking-table">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody id="ranking-body"></tbody>
+        </table>
+        <button class="secondary" onclick="backToMenu()">BACK</button>
+    </div>
+
+    <!-- SCREEN 4: GAME OVER -->
+    <div id="screen-gameover" class="screen hidden">
+        <h1 style="margin-bottom: 10px;">FULL TIME</h1>
+        <p id="final-score-display" style="font-size: 30px; color: #f1c40f; margin-bottom: 30px; font-family: 'Teko', sans-serif;">Score: 0</p>
+        <button onclick="startGame()">REMATCH</button>
+        <button class="secondary" onclick="backToMenu()">MAIN MENU</button>
+    </div>
+    
+    <!-- SCREEN 5: MISSED / CORRECTION -->
+    <div id="screen-missed" class="screen hidden">
+        <h2 style="color: #e74c3c; font-size: 40px;">MISSED CHANCE!</h2>
+        
+        <p style="font-size: 18px; color: #ccc; margin-bottom: 5px;">The question was:</p>
+        <div id="missed-question" style="font-size: 24px; color: #fff; margin-bottom: 25px; font-weight:bold;"></div>
+        
+        <p style="font-size: 18px; color: #ccc; margin-bottom: 5px;">Correct answer:</p>
+        <div id="missed-answer" style="font-size: 40px; color: #f1c40f; font-weight: bold; margin-bottom: 30px; font-family: 'Teko', sans-serif;"></div>
+        
+        <p style="font-size: 16px; margin-bottom: 10px;">Type the answer to resume:</p>
+        <input type="text" id="correction-input" placeholder="Type here..." autocomplete="off">
+        <button id="resume-btn" onclick="resumeGame()" disabled>RESUME MATCH</button>
+    </div>
+
+    <!-- IN-GAME HUD -->
+    <div id="game-input-container" class="hidden">
+        <input type="text" id="game-input" placeholder="Type the answer..." autocomplete="off">
+    </div>
+</div>
+
+<script>
+    /**
+     * VERB DATABASE
+     */
+    const verbsDB = [
+        // 1-10
+        { inf: "be", past: ["was", "were", "was, were", "was were"], trans: "ésser/estar" },
+        { inf: "become", past: ["became"], trans: "fer-se/arribar a ser" },
+        { inf: "begin", past: ["began"], trans: "començar" },
+        { inf: "break", past: ["broke"], trans: "trencar" },
+        { inf: "bring", past: ["brought"], trans: "portar" },
+        { inf: "build", past: ["built"], trans: "construir" },
+        { inf: "buy", past: ["bought"], trans: "comprar" },
+        { inf: "catch", past: ["caught"], trans: "agafar" },
+        { inf: "choose", past: ["chose"], trans: "escollir" },
+        { inf: "come", past: ["came"], trans: "venir" },
+        // 11-20
+        { inf: "cost", past: ["cost"], trans: "costar" },
+        { inf: "cut", past: ["cut"], trans: "tallar" },
+        { inf: "do", past: ["did"], trans: "fer" },
+        { inf: "draw", past: ["drew"], trans: "dibuixar" },
+        { inf: "dream", past: ["dreamt", "dreamed"], trans: "somiar" },
+        { inf: "drink", past: ["drank"], trans: "beure" },
+        { inf: "drive", past: ["drove"], trans: "conduir" },
+        { inf: "eat", past: ["ate"], trans: "menjar" },
+        { inf: "fall", past: ["fell"], trans: "caure" },
+        { inf: "feed", past: ["fed"], trans: "alimentar" },
+        // 21-30
+        { inf: "feel", past: ["felt"], trans: "sentir-se" },
+        { inf: "fight", past: ["fought"], trans: "barallar/lluitar" },
+        { inf: "find", past: ["found"], trans: "trobar" },
+        { inf: "fly", past: ["flew"], trans: "volar" },
+        { inf: "forget", past: ["forgot"], trans: "oblidar" },
+        { inf: "get", past: ["got"], trans: "aconseguir" },
+        { inf: "give", past: ["gave"], trans: "donar" },
+        { inf: "go", past: ["went"], trans: "anar" },
+        { inf: "grow", past: ["grew"], trans: "créixer" },
+        { inf: "have", past: ["had"], trans: "haver/tenir" },
+        // 31-40
+        { inf: "hear", past: ["heard"], trans: "escoltar" },
+        { inf: "hide", past: ["hid"], trans: "amagar" },
+        { inf: "hit", past: ["hit"], trans: "pegar" },
+        { inf: "hold", past: ["held"], trans: "aguantar/sostenir" },
+        { inf: "hurt", past: ["hurt"], trans: "fer mal" },
+        { inf: "keep", past: ["kept"], trans: "guardar" },
+        { inf: "know", past: ["knew"], trans: "saber/conèixer" },
+        { inf: "learn", past: ["learnt", "learned"], trans: "aprendre" },
+        { inf: "leave", past: ["left"], trans: "deixar/marxar" },
+        { inf: "lend", past: ["lent"], trans: "prestar" },
+        // 41-50
+        { inf: "let", past: ["let"], trans: "permetre" },
+        { inf: "lose", past: ["lost"], trans: "perdre" },
+        { inf: "make", past: ["made"], trans: "fer/fabricar" },
+        { inf: "mean", past: ["meant"], trans: "significar" },
+        { inf: "meet", past: ["met"], trans: "trobar-se amb" },
+        { inf: "pay", past: ["paid"], trans: "pagar" },
+        { inf: "put", past: ["put"], trans: "posar" },
+        { inf: "read", past: ["read"], trans: "llegir" },
+        { inf: "ride", past: ["rode"], trans: "muntar" },
+        { inf: "ring", past: ["rang"], trans: "sonar" },
+        // 51-60
+        { inf: "rise", past: ["rose"], trans: "alçar-se" },
+        { inf: "run", past: ["ran"], trans: "córrer" },
+        { inf: "say", past: ["said"], trans: "dir" },
+        { inf: "see", past: ["saw"], trans: "veure" },
+        { inf: "sell", past: ["sold"], trans: "vendre" },
+        { inf: "send", past: ["sent"], trans: "enviar" },
+        { inf: "show", past: ["showed"], trans: "mostrar" },
+        { inf: "shut", past: ["shut"], trans: "tancar" },
+        { inf: "sing", past: ["sang"], trans: "cantar" },
+        { inf: "sink", past: ["sank"], trans: "enfonsar" },
+        // 61-70
+        { inf: "sit", past: ["sat"], trans: "seure/asseure" },
+        { inf: "sleep", past: ["slept"], trans: "dormir" },
+        { inf: "smell", past: ["smelt", "smelled"], trans: "olorar" },
+        { inf: "speak", past: ["spoke"], trans: "parlar" },
+        { inf: "spell", past: ["spelt", "spelled"], trans: "lletrejar" },
+        { inf: "spend", past: ["spent"], trans: "gastar" },
+        { inf: "stand", past: ["stood"], trans: "estar dret/dempeus" },
+        { inf: "steal", past: ["stole"], trans: "robar" },
+        { inf: "swim", past: ["swam"], trans: "nedar" },
+        { inf: "take", past: ["took"], trans: "agafar/prendre" },
+        // 71-80
+        { inf: "teach", past: ["taught"], trans: "ensenyar" },
+        { inf: "tear", past: ["tore"], trans: "estripar/trencar" },
+        { inf: "tell", past: ["told"], trans: "dir/explicar" },
+        { inf: "think", past: ["thought"], trans: "pensar" },
+        { inf: "throw", past: ["threw"], trans: "llençar" },
+        { inf: "understand", past: ["understood"], trans: "entendre" },
+        { inf: "wake", past: ["woke"], trans: "despertar-se" },
+        { inf: "wear", past: ["wore"], trans: "portar/dur" },
+        { inf: "win", past: ["won"], trans: "guanyar" },
+        { inf: "write", past: ["wrote"], trans: "escriure" }
+    ];
+
+    /** GLOBAL VARIABLES */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const gameInput = document.getElementById('game-input');
+    const legend = document.getElementById('legend');
+    
+    let currentPlayer = "Anonymous";
+    let selectedIndices = [];
+    let activeVerbs = [];
+    
+    let gameState = 'LOGIN'; 
+    let score = 0;
+    let lives = 3;
+    let spawnRate = 3500; 
+    let lastSpawn = 0;
+    let balls = []; 
+    let particles = [];
+    let gameLoopId;
+    
+    // Variables for Pause/Resume logic
+    let pauseStartTime = 0;
+
+    /** RANKING SYSTEM */
+    function saveScore(name, pts) {
+        let ranking = JSON.parse(localStorage.getItem('verbLeagueRanking')) || [];
+        ranking.push({ name: name, points: pts });
+        ranking.sort((a, b) => b.points - a.points);
+        ranking = ranking.slice(0, 10); 
+        localStorage.setItem('verbLeagueRanking', JSON.stringify(ranking));
+    }
+
+    function getRanking() {
+        return JSON.parse(localStorage.getItem('verbLeagueRanking')) || [];
+    }
+
+    /** UI NAVIGATION */
+    function goToMenu() {
+        const nameInput = document.getElementById('player-name');
+        if (nameInput.value.trim() === "") {
+            nameInput.style.borderColor = "#e74c3c";
+            return;
+        }
+        currentPlayer = nameInput.value.trim();
+        switchScreen('screen-menu');
+        initLevelGrid();
+    }
+
+    function switchScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.getElementById('game-input-container').classList.add('hidden');
+        legend.classList.add('hidden');
+        
+        if (id) document.getElementById(id).classList.remove('hidden');
+    }
+
+    function backToMenu() {
+        switchScreen('screen-menu');
+    }
+
+    function showRanking() {
+        switchScreen('screen-ranking');
+        const tbody = document.getElementById('ranking-body');
+        tbody.innerHTML = '';
+        const data = getRanking();
+        
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3">No matches played yet</td></tr>';
+        } else {
+            data.forEach((entry, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${idx + 1}</td>
+                    <td>${entry.name}</td>
+                    <td>${entry.points}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    /** SELECTOR LOGIC */
+    function initLevelGrid() {
+        const container = document.getElementById('level-grid');
+        container.innerHTML = '';
+        const totalGroups = Math.ceil(verbsDB.length / 10);
+        
+        for (let i = 0; i < totalGroups; i++) {
+            const btn = document.createElement('div');
+            btn.className = 'level-btn';
+            const start = i * 10 + 1;
+            const end = Math.min((i + 1) * 10, verbsDB.length);
+            btn.textContent = `${start}-${end}`;
+            
+            if (selectedIndices.includes(i)) btn.classList.add('selected');
+
+            btn.onclick = () => {
+                btn.classList.toggle('selected');
+                if (selectedIndices.includes(i)) {
+                    selectedIndices = selectedIndices.filter(idx => idx !== i);
+                } else {
+                    selectedIndices.push(i);
+                }
+            };
+            container.appendChild(btn);
+        }
+    }
+
+    /** GAME ENGINE */
+    class Ball {
+        constructor(x) {
+            this.verb = activeVerbs[Math.floor(Math.random() * activeVerbs.length)];
+            this.radius = 45; 
+            // Use provided x or generate random if not provided (fallback)
+            this.x = x !== undefined ? x : Math.random() * (canvas.width - 2 * this.radius) + this.radius;
+            this.y = -60;
+            
+            // Speed Logic
+            this.speed = 0.3 + (score / 300); 
+            if (this.speed > 2.2) this.speed = 2.2; 
+            
+            // Randomize Type
+            const rand = Math.random();
+            if (rand < 0.4) this.type = 'PAST';       // Red
+            else if (rand < 0.7) this.type = 'INF';   // Blue
+            else this.type = 'TRANS';                 // Green
+
+            this.setupMode();
+            
+            this.rotation = 0;
+            this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+        }
+
+        setupMode() {
+            switch(this.type) {
+                case 'PAST':
+                    this.color = '#e74c3c'; // Red
+                    this.mainText = this.verb.inf.toUpperCase();
+                    this.subText = this.verb.trans;
+                    this.topLabel = "TYPE PAST";
+                    this.validAnswers = this.verb.past;
+                    break;
+                case 'INF':
+                    this.color = '#3498db'; // Blue
+                    this.mainText = this.verb.past[0].toUpperCase();
+                    this.subText = this.verb.trans;
+                    this.topLabel = "TYPE PRESENT";
+                    this.validAnswers = [this.verb.inf];
+                    break;
+                case 'TRANS':
+                    this.color = '#2ecc71'; // Green
+                    this.mainText = `${this.verb.inf.toUpperCase()} / ${this.verb.past[0].toUpperCase()}`;
+                    this.subText = "Meaning?";
+                    this.topLabel = "TRANSLATE";
+                    // Parse translation
+                    this.validAnswers = this.verb.trans.split(/[\/,]/).map(s => s.trim().toLowerCase());
+                    this.validAnswers.push(this.verb.trans.toLowerCase());
+                    break;
+            }
+        }
+
+        update() {
+            this.y += this.speed;
+            this.rotation += this.rotationSpeed;
+        }
+
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            // 1. Draw Ball Base
+            ctx.beginPath();
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+            
+            // 2. Draw White Border
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // 3. Draw Inner Decoration
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const rx = Math.cos(angle) * (this.radius * 0.6);
+                const ry = Math.sin(angle) * (this.radius * 0.6);
+                if (i===0) ctx.moveTo(rx, ry);
+                else ctx.lineTo(rx, ry);
+                ctx.moveTo(rx, ry);
+                ctx.lineTo(Math.cos(angle) * this.radius, Math.sin(angle) * this.radius);
+            }
+            ctx.closePath();
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 4. Draw Label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px Roboto';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(this.topLabel, 0, -20);
+
+            // 5. Main Text
+            ctx.font = 'bold 16px Roboto';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.mainText, 0, 0);
+            
+            // 6. Sub Text
+            ctx.fillStyle = '#f1c40f'; 
+            ctx.font = 'italic 12px Roboto';
+            ctx.fillText(this.subText, 0, 20);
+
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.vx = (Math.random() - 0.5) * 8;
+            this.vy = (Math.random() - 0.5) * 8;
+            this.alpha = 1;
+            this.color = color || '#fff';
+            this.size = Math.random() * 4 + 2;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            this.vy += 0.1; 
+            this.alpha -= 0.02;
+        }
+        draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, this.size, this.size); 
+            ctx.restore();
+        }
+    }
+
+    function createExplosion(x, y, color) {
+        for(let i=0; i<20; i++) {
+            particles.push(new Particle(x, y, color));
+        }
+    }
+
+    function startGame() {
+        if (selectedIndices.length === 0) {
+            document.getElementById('menu-error').textContent = "Select at least one match group!";
+            return;
+        }
+        
+        // Build Active Deck
+        activeVerbs = [];
+        selectedIndices.forEach(i => {
+            const start = i * 10;
+            const end = start + 10;
+            activeVerbs = activeVerbs.concat(verbsDB.slice(start, end));
+        });
+
+        // Reset Logic
+        score = 0;
+        lives = 5; 
+        balls = [];
+        particles = [];
+        spawnRate = 3500; 
+        lastSpawn = performance.now();
+        gameInput.value = '';
+        
+        switchScreen(null); 
+        document.getElementById('game-input-container').classList.remove('hidden');
+        legend.classList.remove('hidden');
+        gameInput.focus();
+        
+        gameState = 'PLAY';
+        if (gameLoopId) cancelAnimationFrame(gameLoopId);
+        loop(performance.now());
+    }
+
+    function loop(timestamp) {
+        if (gameState !== 'PLAY') return;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Spawner
+        if (timestamp - lastSpawn > spawnRate) {
+            // Logic to find safe X (Staggered spawn)
+            let attempts = 0;
+            let safeX = -1;
+            const ballRadius = 45;
+            
+            while (attempts < 10) {
+                let candidateX = Math.random() * (canvas.width - 2 * ballRadius) + ballRadius;
+                let overlap = false;
+                
+                // Check against existing balls that are near the top
+                for (let b of balls) {
+                    if (b.y < 150) { // Only check overlap with balls near spawn area
+                        let dx = b.x - candidateX;
+                        // Minimum distance between centers must be > 2*radius + margin
+                        if (Math.abs(dx) < (ballRadius * 2 + 10)) {
+                            overlap = true;
+                            break;
+                        }
+                    }
+                }
+                
+                if (!overlap) {
+                    safeX = candidateX;
+                    break;
+                }
+                attempts++;
+            }
+            
+            // If we found a safe spot (or tried enough times), spawn
+            if (safeX !== -1 || attempts >= 10) {
+                 // If attempts failed, fallback to random (rare case)
+                 if(safeX === -1) safeX = Math.random() * (canvas.width - 2 * ballRadius) + ballRadius;
+                 
+                 balls.push(new Ball(safeX));
+                 lastSpawn = timestamp;
+                 if (spawnRate > 1500) spawnRate -= 5;
+            } else {
+                // If failed, we wait for next frame to try again, essentially delaying spawn slightly
+                // This adds to staggering effect naturally
+            }
+        }
+
+        // Logic Balls
+        for (let i = balls.length - 1; i >= 0; i--) {
+            let b = balls[i];
+            b.update();
+            b.draw();
+
+            // Hit ground (Goal Conceded)
+            if (b.y - b.radius > canvas.height) {
+                lives--;
+                createExplosion(b.x, canvas.height, '#e74c3c');
+                
+                // Remove the failed ball immediately
+                balls.splice(i, 1);
+                
+                if (lives <= 0) {
+                    gameOver();
+                    return; 
+                } else {
+                    // Trigger Correction Phase
+                    triggerMissedScreen(b);
+                    return; // Stop loop here
+                }
+            }
+        }
+
+        // Logic Particles
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.update();
+            p.draw();
+            if (p.alpha <= 0) particles.splice(i, 1);
+        }
+
+        drawHUD();
+        gameLoopId = requestAnimationFrame(loop);
+    }
+
+    // --- PAUSE & CORRECTION LOGIC ---
+
+    function triggerMissedScreen(ball) {
+        gameState = 'MISSED';
+        pauseStartTime = performance.now();
+        
+        // Determine Question & Answer to show
+        let questionText = "";
+        let answerText = "";
+        
+        if (ball.type === 'PAST') {
+            questionText = `Past of "${ball.verb.inf.toUpperCase()}"`;
+            answerText = ball.validAnswers[0]; // Show first valid option
+        } else if (ball.type === 'INF') {
+            questionText = `Infinitive of "${ball.verb.past[0].toUpperCase()}"`;
+            answerText = ball.verb.inf;
+        } else if (ball.type === 'TRANS') {
+            questionText = `Translation of "${ball.verb.inf.toUpperCase()}"`;
+            answerText = ball.verb.trans; // Show full string "ser/estar"
+        }
+        
+        document.getElementById('missed-question').textContent = questionText;
+        document.getElementById('missed-answer').textContent = answerText;
+        
+        const input = document.getElementById('correction-input');
+        input.value = '';
+        input.dataset.target = answerText; // Store validation target
+        
+        const btn = document.getElementById('resume-btn');
+        btn.disabled = true;
+        
+        switchScreen('screen-missed');
+        input.focus();
+    }
+
+    // Listen to correction input
+    document.getElementById('correction-input').addEventListener('input', function(e) {
+        const target = this.dataset.target.toLowerCase().trim();
+        const val = this.value.toLowerCase().trim();
+        const btn = document.getElementById('resume-btn');
+        
+        if (val === target) {
+            btn.disabled = false;
+            this.style.borderColor = "#2ecc71";
+            this.style.backgroundColor = "#d5f5e3";
+        } else {
+            btn.disabled = true;
+            this.style.borderColor = "#e74c3c";
+            this.style.backgroundColor = "#fff";
+        }
+    });
+    
+    // Allow Enter key to resume if valid
+    document.getElementById('correction-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !document.getElementById('resume-btn').disabled) {
+            resumeGame();
+        }
+    });
+
+    function resumeGame() {
+        // Calculate how long we were paused and adjust spawn timer
+        const pauseDuration = performance.now() - pauseStartTime;
+        lastSpawn += pauseDuration;
+        
+        switchScreen(null); 
+        document.getElementById('game-input-container').classList.remove('hidden');
+        legend.classList.remove('hidden');
+        gameInput.focus();
+        
+        gameState = 'PLAY';
+        loop(performance.now());
+    }
+
+    // --- END PAUSE LOGIC ---
+
+    function drawHUD() {
+        // Score Board Background
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, canvas.width, 50);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(0, 50, canvas.width, 2);
+
+        ctx.fillStyle = '#f1c40f';
+        ctx.font = '30px "Teko"';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`SCORE: ${score}`, 20, 25);
+        
+        ctx.textAlign = 'right';
+        ctx.fillText(`BALLS: `, canvas.width - 120, 25);
+        
+        // Draw circles for lives
+        for (let i=0; i<lives; i++) {
+            ctx.beginPath();
+            ctx.arc(canvas.width - 20 - (i*25), 25, 8, 0, Math.PI*2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+        
+        ctx.textAlign = 'center';
+        ctx.font = '20px "Teko"';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(`PLAYER: ${currentPlayer.toUpperCase()}`, canvas.width/2, 25);
+    }
+
+    function gameOver() {
+        gameState = 'GAMEOVER';
+        saveScore(currentPlayer, score);
+        document.getElementById('final-score-display').textContent = `Final Score: ${score}`;
+        switchScreen('screen-gameover');
+    }
+
+    /** INPUT HANDLING */
+    gameInput.addEventListener('keydown', (e) => {
+        if (gameState !== 'PLAY') return;
+        
+        if (e.key === 'Enter') {
+            const val = gameInput.value.trim().toLowerCase();
+            let hit = false;
+            let hitBall = null;
+
+            for (let i = 0; i < balls.length; i++) {
+                if (balls[i].validAnswers.includes(val)) {
+                    hitBall = balls[i];
+                    balls.splice(i, 1);
+                    score += 10;
+                    hit = true;
+                    break;
+                }
+            }
+
+            if (hit) {
+                // Celebration Confetti
+                createExplosion(hitBall.x, hitBall.y, hitBall.color);
+                createExplosion(hitBall.x, hitBall.y, '#f1c40f'); // Gold confetti too
+                
+                gameInput.value = '';
+                gameInput.style.borderColor = '#2ecc71';
+                gameInput.style.backgroundColor = '#d5f5e3';
+            } else {
+                gameInput.style.borderColor = '#e74c3c';
+                gameInput.style.backgroundColor = '#fadbd8';
+            }
+            
+            setTimeout(() => {
+                gameInput.style.borderColor = '#0d2b16';
+                gameInput.style.backgroundColor = 'rgba(255, 255, 255, 0.95)';
+            }, 200);
+        }
+    });
+
+    canvas.addEventListener('click', () => {
+        if (gameState === 'PLAY') gameInput.focus();
+    });
+
+</script>
+</body>
+</html>
